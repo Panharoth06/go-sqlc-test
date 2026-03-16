@@ -2,16 +2,14 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
-	// Registers the "pgx" driver for database/sql.
-	_ "github.com/jackc/pgx/v5/stdlib"
 	// Loads variables from .env into os.Getenv(...) automatically.
 	_ "github.com/joho/godotenv/autoload"
 	"go-sqlc/internal/database"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func run() error {
@@ -25,15 +23,15 @@ func run() error {
 		return fmt.Errorf("DATABASE_URL is not set")
 	}
 
-	// sql.Open creates a DB handle (connection pool). It does not connect immediately.
-	db, err := sql.Open("pgx", dsn)
+	// sqlc is configured for pgx/v5, so use a native pgx pool.
+	db, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		return fmt.Errorf("open connection: %w", err)
 	}
 	defer db.Close()
 
 	// Ping forces an actual connection attempt now.
-	if err := db.PingContext(ctx); err != nil {
+	if err := db.Ping(ctx); err != nil {
 		return fmt.Errorf("ping database: %w", err)
 	}
 
@@ -53,7 +51,7 @@ func run() error {
 	createdAuthor, err := queries.CreateAuthor(ctx, database.CreateAuthorParams{
 		Name:     "Naabu",
 		Bio:      "Naabu, a powerful port enumeration tool",
-		Username: "Labubu version 3",
+		Username: "Labubu version 4",
 	})
 
 	if err != nil {

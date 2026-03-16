@@ -24,8 +24,10 @@ type CreateAuthorParams struct {
 	Username string
 }
 
+// Insert one author.
+// $1, $2, $3 are positional parameters from Go.
 func (q *Queries) CreateAuthor(ctx context.Context, arg CreateAuthorParams) (Author, error) {
-	row := q.db.QueryRowContext(ctx, createAuthor, arg.Name, arg.Bio, arg.Username)
+	row := q.db.QueryRow(ctx, createAuthor, arg.Name, arg.Bio, arg.Username)
 	var i Author
 	err := row.Scan(
 		&i.ID,
@@ -41,19 +43,30 @@ DELETE FROM authors
 WHERE id = $1
 `
 
+// Delete one author by ID.
 func (q *Queries) DeleteAuthor(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteAuthor, id)
+	_, err := q.db.Exec(ctx, deleteAuthor, id)
 	return err
 }
 
 const getAuthor = `-- name: GetAuthor :one
+
 SELECT id, name, bio, username FROM authors 
 WHERE id = $1
 LIMIT 1
 `
 
+// sqlc uses the header format below to generate Go methods:
+// -- name: MethodName :result_type
+// Result types:
+//
+//	:one  -> return a single row
+//	:many -> return multiple rows
+//	:exec -> execute without returning rows
+//
+// Get one author by ID.
 func (q *Queries) GetAuthor(ctx context.Context, id int64) (Author, error) {
-	row := q.db.QueryRowContext(ctx, getAuthor, id)
+	row := q.db.QueryRow(ctx, getAuthor, id)
 	var i Author
 	err := row.Scan(
 		&i.ID,
@@ -68,8 +81,9 @@ const listAuthors = `-- name: ListAuthors :many
 SELECT id, name, bio, username FROM authors
 `
 
+// Get all authors.
 func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
-	rows, err := q.db.QueryContext(ctx, listAuthors)
+	rows, err := q.db.Query(ctx, listAuthors)
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +100,6 @@ func (q *Queries) ListAuthors(ctx context.Context) ([]Author, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -110,8 +121,9 @@ type UpdateAuthorParams struct {
 	Username string
 }
 
+// Update one author by ID.
 func (q *Queries) UpdateAuthor(ctx context.Context, arg UpdateAuthorParams) (Author, error) {
-	row := q.db.QueryRowContext(ctx, updateAuthor,
+	row := q.db.QueryRow(ctx, updateAuthor,
 		arg.ID,
 		arg.Name,
 		arg.Bio,
